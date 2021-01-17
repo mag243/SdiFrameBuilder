@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Frame.cpp" />
+    <ClCompile Include="Source\FrameBuffer.cpp" />
+    <ClCompile Include="Source\FrameBuilder.cpp" />
+    <ClCompile Include="Source\FrameParser.cpp" />
+    <ClCompile Include="Source\FrameProperties.cpp" />
     <ClCompile Include="Source\SdiFrameBuilder.cpp" />
   </ItemGroup>
   <ItemGroup>

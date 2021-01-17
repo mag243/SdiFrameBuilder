@@ -10,6 +10,21 @@
     <ClCompile Include="Source\SdiFrameBuilder.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\FrameBuilder.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FrameParser.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Frame.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FrameBuffer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FrameProperties.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\SdiFrameBuilder.h">
