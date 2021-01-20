@@ -25,9 +25,18 @@
     <ClCompile Include="Source\FrameProperties.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\PixelFormatProps.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Helpers.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\SdiFrameBuilder.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SymbolPtr.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

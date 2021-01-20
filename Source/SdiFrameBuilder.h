@@ -22,10 +22,37 @@ public:
 //
 enum class PixelFormat : int
 {
-    UNDEFINED=-1,
+    INVALID=-1,
     UYVY422_8B,
     UYVY422_10B,
     UYVY422_16B,
+    UYVY422_10B_NBO,
+    YUYV422_8B,
+    YUYV422_10B,
+    YUYV422_16B,
+    Y_8B,
+    Y_16B,
+    YUV422P_8B,
+    YUV422P_16B,
+    YUV422P2_8B,
+    YUV422P2_16B,
+    YUV420P2_8B,
+    BGR_8B,
+    BGRX_8B,
+    V210,
+    Y_10B,
+    YUV422P_10B,
+    YUV422P2_10B,
+    YUV420P2_10B,
+    YUV420P2_16B,
+    BGR_10B,
+    BGR_16B,
+    BGRX_10B,
+    BGRX_16B,
+    PLANE_Y,
+    PLANE_U,
+    PLANE_V,
+    PLANE_UV,
 };
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ enum class VideoStandard +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
@@ -70,6 +97,84 @@ enum class VideoStandard : int
     STD_2160P60B,
 };
 
+
+// +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ struct Fraction +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+//
+struct Fraction
+{
+    int Num=0, Den=1;
+
+    // Operations
+    void Normalize();
+    double ToDouble() const;
+    bool operator==(const Fraction&) const;
+    bool operator!=(const Fraction&) const;
+
+    // Constructor
+    Fraction(int N=0, int D=1);
+};
+
+// +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class PixelFormatProps +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+//
+class PixelFormatProps
+{
+    // Operations
+public:
+    PixelFormat Fmt_Get() const;
+    bool  IsFmt(PixelFormat) const;
+    bool  IsValid() const;
+    void  Init(PixelFormat);
+    int  NumPlanes() const;
+    bool  Is8Bit() const;
+    static bool  Is8Bit(PixelFormat);
+    bool  Is10Bit() const;
+    static bool  Is10Bit(PixelFormat);
+    bool  Is16Bit() const;
+    static bool  Is16Bit(PixelFormat);
+    bool  IsRgb() const;
+    static bool  IsRgb(PixelFormat);
+    bool  IsUyvy() const;
+    static bool  IsUyvy(PixelFormat);
+    bool  IsV210() const;
+    static bool  IsV210(PixelFormat);
+    bool  IsY() const;
+    static bool  IsY(PixelFormat);
+    bool  IsYuv420P2() const;
+    static bool  IsYuv420P2(PixelFormat);
+    bool  IsYuv422P() const;
+    static bool  IsYuv422P(PixelFormat);
+    bool  IsYuv422P2() const;
+    static bool  IsYuv422P2(PixelFormat);
+    bool  IsYuyv() const;
+    static bool  IsYuyv(PixelFormat);
+    bool  IsPacked() const;
+    static bool  IsPacked(PixelFormat);
+    bool  IsPlanar() const;
+    static bool  IsPlanar(PixelFormat);
+    const char* ToName() const;
+    bool operator==(const PixelFormatProps&) const;
+    bool operator!=(const PixelFormatProps&) const;
+
+// Data / Attributes
+public:
+    std::vector<PixelFormat> Planes;
+    // Format of planes. Size indicates #planes
+    //DtMxChromaFormat ChromaFmt;  // Chroma format
+    int SymbolSize=0;           // Size of the symbols
+    int NumSymPerPixel=0;       // #symbol in a pixel
+    Fraction SymbolPackRatio;   // Packing ratio for symbols.
+                                //  - Numerator is #usable bits
+                                //  - Denumerator is #bits used
+                                // e.g. V210 stores 3x10-bit symbols in 32-bit => 
+                                // num=30 and denum=32
+protected:
+    PixelFormat Fmt;            // The overall pixel format
+
+    // Constructor / Destructor
+public:
+    PixelFormatProps(PixelFormat Fmt=PixelFormat::INVALID);
+};
+
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class IFrameBuffer +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //
 using FrameBuffer = std::unique_ptr<class IFrameBuffer>;
@@ -89,7 +194,7 @@ public:
     // Data / Attributes
 private:
     VideoStandard VidStd=VideoStandard::STD_UNKNOWN;
-    PixelFormat PxFormat=PixelFormat::UNDEFINED;
+    PixelFormat PxFormat=PixelFormat::INVALID;
 
     // Constructor
 protected:
@@ -139,11 +244,6 @@ struct AncTocEntry
 {
 };
 
-struct Fraction
-{
-    int Num=0, Den=1;
-    Fraction(int N=0, int D=1) : Num(N), Den(D) {}
-};
 
 // =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ struct Video +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -151,7 +251,7 @@ struct Video
 {
     size_t Width=0, Height=0;       // Width and height in pixels
     size_t LineSizeInBytes=0;
-    PixelFormat PxFmt=PixelFormat::UNDEFINED;
+    PixelFormat PxFmt=PixelFormat::INVALID;
     std::vector<uint8_t*> Lines;
 };
 

@@ -208,28 +208,14 @@ size_t FrameProperties::LineNumSymbols() const
 //
 size_t FrameProperties::LineSizeInBytes(PixelFormat Fmt) const
 {
-    size_t SymbolSize = 0;
-    switch (Fmt)
-    {
-    case PixelFormat::UYVY422_8B:   SymbolSize = 8; break;
-    case PixelFormat::UYVY422_10B:  SymbolSize = 10; break;
-    case PixelFormat::UYVY422_16B:  SymbolSize = 16; break;
-    default:                        assert(false); return 0;
-    }
-    return (((LineNumSymbols() * SymbolSize) + 7) / 8);
+    PixelFormatProps PP(Fmt);
+    return (((LineNumSymbols() * PP.SymbolSize) + 7) / 8);
 }
 size_t FrameProperties::LineSizeInBytes_Hanc(PixelFormat Fmt, bool IncludeEavSav)
 {
-    size_t SymbolSize = 0;
-    switch (Fmt)
-    {
-    case PixelFormat::UYVY422_8B:   SymbolSize = 8; break;
-    case PixelFormat::UYVY422_10B:  SymbolSize = 10; break;
-    case PixelFormat::UYVY422_16B:  SymbolSize = 16; break;
-    default:                        assert(false); return 0;
-    }
+    PixelFormatProps PP(Fmt);
     size_t NumSymbols = LineNumSymHanc + IncludeEavSav ? LineNumSymEav+LineNumSymSav : 0;
-    return (((NumSymbols * SymbolSize) + 7) / 8);
+    return (((NumSymbols * PP.SymbolSize) + 7) / 8);
 }
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::NumLines -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
@@ -265,7 +251,7 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
     case VideoStandard::STD_1080P24:
     //case VideoStandard::STD_1080PSF24:
     case VideoStandard::STD_2160P24:
-        return Fraction(24, 1);
+        return Fraction(24000, 1000);
 
         // 25fps
     case VideoStandard::STD_625I50:
@@ -274,7 +260,7 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
     case VideoStandard::STD_1080P25:
     //case VideoStandard::STD_1080PSF25:
     case VideoStandard::STD_2160P25:
-        return Fraction(25, 1);
+        return Fraction(25000, 1000);
 
         // 29.97fps
     case VideoStandard::STD_525I59_94:
@@ -291,7 +277,7 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
     case VideoStandard::STD_1080P30:
     //case VideoStandard::STD_1080PSF30:
     case VideoStandard::STD_2160P30:
-        return Fraction(30, 1);
+        return Fraction(30000, 1000);
 
         // 50fps
     case VideoStandard::STD_720P50:
@@ -299,7 +285,7 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
     case VideoStandard::STD_1080P50B:
     case VideoStandard::STD_2160P50:
     case VideoStandard::STD_2160P50B:
-        return Fraction(50, 1);
+        return Fraction(50000, 1000);
 
         // 59.94fps
     case VideoStandard::STD_720P59_94:
@@ -315,7 +301,7 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
     case VideoStandard::STD_1080P60B:
     case VideoStandard::STD_2160P60:
     case VideoStandard::STD_2160P60B:
-        return Fraction(60, 1);
+        return Fraction(60000, 1000);
 
         // Unknown video standard
     default:  assert(false); break;

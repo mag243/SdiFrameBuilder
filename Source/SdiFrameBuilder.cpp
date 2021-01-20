@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include "SdiFrameBuilder.h"
+#include "SymbolPtr.h"
 
 using namespace std;
 using namespace DtSdi;
@@ -36,5 +37,17 @@ int main()
     Video V;
     F.Video_Get(V);
 
+
+    vector<uint16_t> Symbols(63);
+    for (uint16_t i=0; i<static_cast<uint16_t>(Symbols.size()); i++)
+        Symbols[i] = 0;
+
+
+    SymbolPtr16b_Hd Ptr(Symbols.data(), Symbols.size()/2, SymbolPtr::Stream::LUMAMINANCE_0);
+    for (size_t i=0; i<Ptr.Size(); i++)
+    {
+        uint16_t& Sym1 = *Ptr++;
+        Sym1 = 0x1234;
+    }
     return 0;
 }
