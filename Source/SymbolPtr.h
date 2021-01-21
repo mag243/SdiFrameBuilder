@@ -51,11 +51,16 @@ public:
         assert(NumStreams_T==1 || NumStreams_T==2 || NumStreams_T==8);
         const int Delta = (Offset * NumStreams_T);
         Ptr += Delta;
-        //assert(Ptr!=nullptr && Ptr>=Start && Ptr<=End);
+        assert(Ptr!=nullptr && Ptr>=Start && Ptr<=(End+NumStreams_T));
     }
     inline size_t Size() const override
     {
         return static_cast<size_t>(End - Start) / NumStreams_T;
+    }
+    inline uint16_t& operator[](size_t Offset) const
+    {
+        Offset *= NumStreams_T;
+        return PtrFirstSymbol[Offset];
     }
     inline uint16_t& operator*(void)
     {
@@ -99,6 +104,7 @@ public:
 protected:
     uint16_t *Start=nullptr, *End=nullptr;  // Start+end of buffer
     uint16_t *Ptr=nullptr;      // Current byte position
+    uint16_t *PtrFirstSymbol=nullptr; 
 
     // Constructor / Destructor
 public:
@@ -110,6 +116,7 @@ public:
         End = Start + (NumSymbols * NumStreams_T);
         assert(static_cast<size_t>(Stream) < NumStreams_T);
         Ptr = Start + static_cast<size_t>(Stream);
+        PtrFirstSymbol = Ptr;
     }
 };
 using SymbolPtr16b_Sd = SymbolPtr16b<1>;

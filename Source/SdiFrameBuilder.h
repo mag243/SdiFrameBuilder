@@ -184,7 +184,7 @@ class IFrameBuffer
 public:
     virtual uint8_t* Data(void)=0;
     virtual VideoStandard Standard() const { return VidStd; }
-    virtual PixelFormat PxFmt() const { return PxFormat; }
+    virtual PixelFormat PxFmt_Get() const { return PxFmt; }
     virtual size_t Size(void) const=0;
 
     static FrameBuffer Make(VideoStandard, PixelFormat);
@@ -194,11 +194,11 @@ public:
     // Data / Attributes
 private:
     VideoStandard VidStd=VideoStandard::STD_UNKNOWN;
-    PixelFormat PxFormat=PixelFormat::INVALID;
+    PixelFormat PxFmt=PixelFormat::INVALID;
 
     // Constructor
 protected:
-    IFrameBuffer(VideoStandard Std, PixelFormat Fmt) : VidStd(Std), PxFormat(Fmt) {}
+    IFrameBuffer(VideoStandard Std, PixelFormat Fmt) : VidStd(Std), PxFmt(Fmt) {}
 };
 //static FrameBuffer Make_Frame(size_t);
 //static FrameBuffer Make_Frame(uint8_t*, size_t);
@@ -315,6 +315,8 @@ public:
     void Clone(const FrameBuffer&);
     void Commit();
     uint8_t* Data() const;
+    FrameProperties Props_Get() const;
+    PixelFormat PxFmt_Get() const;
     size_t Size() const;
     void Swap(FrameBuffer&);
 
@@ -343,6 +345,7 @@ class FrameBuilder
     // Operations
 public:
     void Anc_Add(void);
+    void Frame_Init(Frame&);
     void Audio_Add(void);
     void Video_Add(void);
     void Line_Set(void);

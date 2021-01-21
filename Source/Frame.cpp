@@ -38,7 +38,8 @@ void Frame::Clone(const Frame& OthFrame)
 }
 void Frame::Clone(const FrameBuffer& OthBuf)
 {
-    FrameBuf = IFrameBuffer::Make(OthBuf->Standard(), OthBuf->PxFmt(), OthBuf->Size());
+    FrameBuf = IFrameBuffer::Make(OthBuf->Standard(), OthBuf->PxFmt_Get(),
+                                                                          OthBuf->Size());
     std::memcpy(FrameBuf->Data(), OthBuf->Data(), OthBuf->Size());
 }
 
@@ -56,6 +57,22 @@ uint8_t* Frame::Data() const
     if (FrameBuf == nullptr)
         return nullptr;
     return FrameBuf->Data();
+}
+
+// .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Props_Get -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+FrameProperties Frame::Props_Get() const
+{
+    FrameProperties  FP;
+    FP.Init(FrameBuf->Standard());
+    return FP;
+}
+
+PixelFormat Frame::PxFmt_Get() const
+{
+    if (FrameBuf == nullptr)
+        return PixelFormat::INVALID;
+    return FrameBuf->PxFmt_Get();
 }
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Size -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -94,15 +111,15 @@ void Frame::Video_Get(Video& V) const
 
     V.Lines.clear();
 
-    V.PxFmt = FrameBuf->PxFmt();
+    V.PxFmt = FrameBuf->PxFmt_Get();
     V.Width = FP.VideoWidth;
     V.Height = FP.VideoHeight;
-    V.LineSizeInBytes = FP.LineSizeInBytes(FrameBuf->PxFmt());
+    V.LineSizeInBytes = FP.LineSizeInBytes(FrameBuf->PxFmt_Get());
 
     for (const auto& Fld : FP.Fields)
     {
         uint8_t* Line = FrameBuf->Data() + (V.LineSizeInBytes * (Fld.FirstLineVideo-1));
-        Line += FP.LineSizeInBytes_Hanc(FrameBuf->PxFmt());
+        Line += FP.LineSizeInBytes_Hanc(FrameBuf->PxFmt_Get());
         for (size_t l=Fld.FirstLineVideo; l<=Fld.LastLineVideo; l++)
         {
             V.Lines.push_back(Line);

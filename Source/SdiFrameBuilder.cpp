@@ -49,5 +49,10 @@ int main()
         uint16_t& Sym1 = *Ptr++;
         Sym1 = 0x1234;
     }
+
+
+    FrameBuilder  Builder;
+    Builder.Frame_Init(F);
+
     return 0;
 }
