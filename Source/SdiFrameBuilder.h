@@ -1,10 +1,13 @@
 // #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#* SdiFrameBuilder.h *#*#*#*#*#*#*#*#*# (C) 2021 DekTec
 //
 
+#pragma once
+
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Include files -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 #include <memory>
 #include <stdint.h>
 #include <vector>
+#include <map>
 
 namespace DtSdi
 {
@@ -97,6 +100,20 @@ enum class VideoStandard : int
     STD_2160P60B,
 };
 
+// -.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum class SymbolStreamType -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+enum class SymbolStreamType : int
+{
+    ALL     = -1,
+    CHROM0,
+    LUMA0,
+    CHROM1,
+    LUMA1,
+    CHROM2,
+    LUMA2,
+    CHROM3,
+    LUMA3,
+};
 
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ struct Fraction +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -273,6 +290,9 @@ public:
         size_t SwitchingLine=0;
 
         // Operations
+        bool IsLineInField(size_t) const;
+        bool IsVanc(size_t) const;
+        bool IsVideo(size_t) const;
         size_t NumLines() const;
         size_t NumLinesVideo() const;
     };
@@ -281,10 +301,13 @@ public:
 public:
     bool Init(VideoStandard);
     bool IsInterlaced() const;
+    bool IsVanc(size_t) const;
     size_t LineNumSymbols() const;
     size_t LineSizeInBytes(PixelFormat) const;
     size_t LineSizeInBytes_Hanc(PixelFormat, bool IncludeEavSav=true);
+    size_t Line2Field(size_t) const;
     size_t NumLines() const;
+    size_t NumSymbols() const;
     size_t SizeInBytes(PixelFormat) const;
     static Fraction ToFramePerSecond(VideoStandard);
 
@@ -309,6 +332,16 @@ public:
 //
 class Frame
 {
+    // Types
+public:
+    using SymbolBuffer = std::vector<uint16_t>;
+    struct ParsedFrame
+    {
+        std::map<SymbolStreamType, SymbolBuffer> Hanc;
+        std::map<SymbolStreamType, SymbolBuffer> Vanc;
+        std::vector<uint16_t> Video;
+    };
+
     // Operations
 public:
     void Clone(const Frame&);
@@ -324,10 +357,15 @@ public:
     void Anc_Get(void);
     void Audio_Get(void);
     void Video_Get(Video&) const;
+protected:
+    void Parse();
 
     // Data / Attributes
 protected:
-    FrameBuffer FrameBuf;
+    FrameBuffer RawFrame;
+    ParsedFrame ParsedFrame;
+private:
+    bool IsDirty=false;
 
     // Constructor / Destructor
 public:
@@ -337,6 +375,27 @@ public:
     Frame(VideoStandard, PixelFormat, uint8_t*, size_t);
     Frame(FrameBuffer&&);
 };
+
+//class Frame_Parsed
+//{
+//    // types
+//public:
+//    using SymbolBuffer = std::vector<uint16_t>;
+//
+//    // Operations
+//public:
+//
+//    // Data / Attributes
+//protected:
+//    std::map<SymbolStreamType, SymbolBuffer> Hanc;
+//    std::map<SymbolStreamType, SymbolBuffer> Vanc;
+//    std::map<SymbolStreamType, SymbolBuffer> Video;
+//
+//    // Constructor / Destructor
+//public:
+//    Frame_Parsed()=default;
+//    Frame_Parsed(const Frame&);
+//};
 
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class FrameBuilder +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //
@@ -365,6 +424,11 @@ public:
     void Video_Read(void);
 
     void Parse(const Frame&);
+
+    // Data / Attributes
+private:
+
+
 };
 
 }; // namespace DtSdi

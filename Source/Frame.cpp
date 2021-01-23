@@ -16,17 +16,17 @@ namespace DtSdi
 //
 Frame::Frame(VideoStandard Std, PixelFormat Fmt)
 {
-    FrameBuf = IFrameBuffer::Make(Std, Fmt);
+    RawFrame = IFrameBuffer::Make(Std, Fmt);
 }
 Frame::Frame(VideoStandard Std, PixelFormat Fmt, size_t Size)
 {
-    FrameBuf = IFrameBuffer::Make(Std, Fmt, Size);
+    RawFrame = IFrameBuffer::Make(Std, Fmt, Size);
 }
 Frame::Frame(VideoStandard Std, PixelFormat Fmt, uint8_t* Data, size_t Size)
 {
-    FrameBuf = IFrameBuffer::Make(Std, Fmt, Data, Size);
+    RawFrame = IFrameBuffer::Make(Std, Fmt, Data, Size);
 }
-Frame::Frame(FrameBuffer&& FrmBuf) : FrameBuf(std::move(FrmBuf))
+Frame::Frame(FrameBuffer&& FrmBuf) : RawFrame(std::move(FrmBuf))
 {
 }
 
@@ -34,13 +34,14 @@ Frame::Frame(FrameBuffer&& FrmBuf) : FrameBuf(std::move(FrmBuf))
 //
 void Frame::Clone(const Frame& OthFrame)
 {
-    Clone(OthFrame.FrameBuf);
+    Clone(OthFrame.RawFrame);
 }
 void Frame::Clone(const FrameBuffer& OthBuf)
 {
-    FrameBuf = IFrameBuffer::Make(OthBuf->Standard(), OthBuf->PxFmt_Get(),
+    RawFrame = IFrameBuffer::Make(OthBuf->Standard(), OthBuf->PxFmt_Get(),
                                                                           OthBuf->Size());
-    std::memcpy(FrameBuf->Data(), OthBuf->Data(), OthBuf->Size());
+    std::memcpy(RawFrame->Data(), OthBuf->Data(), OthBuf->Size());
+    Parse();
 }
 
 
@@ -48,15 +49,24 @@ void Frame::Clone(const FrameBuffer& OthBuf)
 //
 void Frame::Commit()
 {
+    if (!IsDirty)
+        return;
+    IsDirty = false;
 }
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Data -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 uint8_t* Frame::Data() const
 {
-    if (FrameBuf == nullptr)
+    if (RawFrame == nullptr)
         return nullptr;
-    return FrameBuf->Data();
+    return RawFrame->Data();
+}
+
+// .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Parse -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+void Frame::Parse()
+{
 }
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Props_Get -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -64,31 +74,33 @@ uint8_t* Frame::Data() const
 FrameProperties Frame::Props_Get() const
 {
     FrameProperties  FP;
-    FP.Init(FrameBuf->Standard());
+    FP.Init(RawFrame->Standard());
     return FP;
 }
 
 PixelFormat Frame::PxFmt_Get() const
 {
-    if (FrameBuf == nullptr)
+    if (RawFrame == nullptr)
         return PixelFormat::INVALID;
-    return FrameBuf->PxFmt_Get();
+    return RawFrame->PxFmt_Get();
 }
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Size -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 size_t Frame::Size() const
 {
-    if (FrameBuf==nullptr || FrameBuf->Data()==nullptr)
+    if (RawFrame==nullptr || RawFrame->Data()==nullptr)
         return 0;
-    return FrameBuf->Size();
+    return RawFrame->Size();
 }
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Swap -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
-void Frame::Swap(FrameBuffer& NewFrmBuf)
+void Frame::Swap(FrameBuffer& NewFrame)
 {
-    FrameBuf.swap(NewFrmBuf);
+    Commit();
+    RawFrame.swap(NewFrame);
+    Parse();
 }
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Frame::Anc_Get -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
@@ -107,24 +119,24 @@ void Frame::Audio_Get(void)
 //
 void Frame::Video_Get(Video& V) const
 {
-    FrameProperties  FP(FrameBuf->Standard());
+    FrameProperties  FP(RawFrame->Standard());
 
     V.Lines.clear();
 
-    V.PxFmt = FrameBuf->PxFmt_Get();
+    V.PxFmt = RawFrame->PxFmt_Get();
     V.Width = FP.VideoWidth;
     V.Height = FP.VideoHeight;
-    V.LineSizeInBytes = FP.LineSizeInBytes(FrameBuf->PxFmt_Get());
+    V.LineSizeInBytes = FP.LineSizeInBytes(RawFrame->PxFmt_Get());
 
     for (const auto& Fld : FP.Fields)
     {
-        uint8_t* Line = FrameBuf->Data() + (V.LineSizeInBytes * (Fld.FirstLineVideo-1));
-        Line += FP.LineSizeInBytes_Hanc(FrameBuf->PxFmt_Get());
+        uint8_t* Line = RawFrame->Data() + (V.LineSizeInBytes * (Fld.FirstLineVideo-1));
+        Line += FP.LineSizeInBytes_Hanc(RawFrame->PxFmt_Get());
         for (size_t l=Fld.FirstLineVideo; l<=Fld.LastLineVideo; l++)
         {
             V.Lines.push_back(Line);
             Line += V.LineSizeInBytes;
-            assert(Line < (FrameBuf->Data() + FrameBuf->Size()));
+            assert(Line < (RawFrame->Data() + RawFrame->Size()));
         }
     }
 }

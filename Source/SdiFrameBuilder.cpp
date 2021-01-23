@@ -3,6 +3,7 @@
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Include files -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include "SdiFrameBuilder.h"
 #include "SymbolPtr.h"
@@ -14,7 +15,7 @@ using namespace DtSdi;
 //
 int main()
 {
-    const VideoStandard VidStd = VideoStandard::STD_720P50;
+    const VideoStandard VidStd = VideoStandard::STD_1080I50;
     const PixelFormat PxFmt = PixelFormat::UYVY422_16B;
 
     vector<uint8_t> ExternalBuf(4*1024*1024);
@@ -37,22 +38,13 @@ int main()
     Video V;
     F.Video_Get(V);
 
-
-    vector<uint16_t> Symbols(63);
-    for (uint16_t i=0; i<static_cast<uint16_t>(Symbols.size()); i++)
-        Symbols[i] = 0;
-
-
-    SymbolPtr16b_Hd Ptr(Symbols.data(), Symbols.size()/2, SymbolPtr::Stream::LUMAMINANCE_0);
-    for (size_t i=0; i<Ptr.Size(); i++)
-    {
-        uint16_t& Sym1 = *Ptr++;
-        Sym1 = 0x1234;
-    }
-
-
     FrameBuilder  Builder;
     Builder.Frame_Init(F);
 
+    //std::ofstream OutFile;
+    //OutFile.open(".\\Export\\sdi_frame.hex", std::ios_base::out | std::ios_base::binary);
+    //OutFile.clear();
+    //OutFile.write(reinterpret_cast<char*>(F.Data()), F.Size());
+    //OutFile.close();
     return 0;
 }

@@ -16,58 +16,77 @@ class SymbolPtr
 {
     // Types
 public:
-    // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum class Stream -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+    // -.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum class SymbolStream -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
     //
-    enum class Stream : size_t
+    enum class SymbolStream : size_t
     {
-        SD_CHROMLUM     = 0,
-        CHROMINANCE_0   = 0,
-        LUMAMINANCE_0   = 1,
-        CHROMINANCE_1   = 2,
-        LUMAMINANCE_1   = 3,
-        CHROMINANCE_2   = 4,
-        LUMAMINANCE_2   = 5,
-        CHROMINANCE_3   = 6,
-        LUMAMINANCE_3   = 7,
+        ALL      = 0,
+        CHROM_0  = 0,
+        LUMA_0   = 1,
+        CHROM_1  = 2,
+        LUMA_1   = 3,
+        CHROM_2  = 4,
+        LUMA_2   = 5,
+        CHROM_3  = 6,
+        LUMA_3   = 7,
     };
 
     // Operations
 public:
-    virtual void Seek(int Offset) = 0;
-    virtual size_t Size() const = 0;
+    virtual void Seek(int64_t Offset) = 0;
+    virtual size_t NumSymbols_Get() const = 0;
+    virtual size_t NumSymbolsStream_Get() const = 0;
 };
 
 
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class SymbolPtr16b +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //
-template <const size_t NumStreams_T=1>
+template <const size_t NUM_STREAMS_T=1>
 class SymbolPtr16b : public SymbolPtr
 {
     // Operations
 public:
-    inline void Seek(int Offset) override
+    inline void Seek(int64_t Offset) override
     {
-        assert(Ptr!=nullptr && Ptr>=Start && Ptr<=End);
-        assert(NumStreams_T==1 || NumStreams_T==2 || NumStreams_T==8);
-        const int Delta = (Offset * NumStreams_T);
-        Ptr += Delta;
-        assert(Ptr!=nullptr && Ptr>=Start && Ptr<=(End+NumStreams_T));
+        // Move position
+        const size_t SymbolOffset = PositionToSymbolOffset(Pos);
+        Pos = std::min(SymbolOffsetToPosition(SymbolOffset+Offset), NumSymbols-1);
     }
-    inline size_t Size() const override
+    inline size_t NumSymbols_Get() const override
     {
-        return static_cast<size_t>(End - Start) / NumStreams_T;
+        return NumSymbols;
+    }
+    inline size_t NumSymbolsStream_Get() const override
+    {
+        size_t NumSymbolsOfStream = (NumSymbols / NUM_STREAMS_T);
+        if ((NumSymbols%NUM_STREAMS_T)>OffsetToFirst)
+            NumSymbolsOfStream += 1;
+        return NumSymbolsOfStream;
+    }
+    inline size_t PositionToSymbolOffset(const size_t Position) const
+    {
+        assert(Position >= OffsetToFirst);
+        assert(NUM_STREAMS_T==1 || NUM_STREAMS_T==2 || NUM_STREAMS_T==8);
+        const size_t SymbolOffset = (Position-OffsetToFirst) / NUM_STREAMS_T;
+        return SymbolOffset;
+    }
+    inline size_t SymbolOffsetToPosition(const size_t SymbolOffset) const
+    {
+        assert(NUM_STREAMS_T==1 || NUM_STREAMS_T==2 || NUM_STREAMS_T==8);
+        assert(SymbolOffset <= NumSymbolsStream_Get());
+        const size_t Position = ((SymbolOffset*NUM_STREAMS_T) + OffsetToFirst);
+        return Position;
     }
     inline uint16_t& operator[](size_t Offset) const
     {
-        Offset *= NumStreams_T;
-        return PtrFirstSymbol[Offset];
+        return Syms[SymbolOffsetToPosition(Offset)];
     }
     inline uint16_t& operator*(void)
     {
-        assert(Ptr!=nullptr && Ptr>=Start && Ptr<End);
-        return *Ptr;
+        assert(Syms != nullptr);
+        return Syms[Pos];
     }
-    inline SymbolPtr16b& operator+=(int Delta)
+    inline SymbolPtr16b& operator+=(int64_t Delta)
     {
         Seek(Delta);
         return *this;
@@ -83,7 +102,7 @@ public:
         ++*this;
         return Temp;
     }
-    inline SymbolPtr16b& operator-=(int Delta)
+    inline SymbolPtr16b& operator-=(int64_t Delta)
     {
         Seek(-Delta);
         return *this;
@@ -102,21 +121,23 @@ public:
 
     // Data / Attributes
 protected:
-    uint16_t *Start=nullptr, *End=nullptr;  // Start+end of buffer
-    uint16_t *Ptr=nullptr;      // Current byte position
-    uint16_t *PtrFirstSymbol=nullptr; 
+    uint16_t* Syms=nullptr; // Points to buffer with interleaved symbols (all streams)
+    size_t NumSymbols=0;    // Size of buffer in number of symbols
+    size_t Pos=0;           // Current position in buffer
+    size_t OffsetToFirst=0; // Offset to first symbol of the stream type
 
     // Constructor / Destructor
 public:
-    SymbolPtr16b(uint16_t* Start, size_t NumSymbols, 
-                                                const Stream Stream=Stream::CHROMINANCE_0)
+    SymbolPtr16b(uint16_t* Syms, size_t NumSymbols, 
+                                          const SymbolStream Stream=SymbolStream::CHROM_0)
+        : Syms(Syms),
+          NumSymbols(NumSymbols)
     {
-        assert(Start!=nullptr && NumSymbols>0);
-        this->Start = Start;
-        End = Start + (NumSymbols * NumStreams_T);
-        assert(static_cast<size_t>(Stream) < NumStreams_T);
-        Ptr = Start + static_cast<size_t>(Stream);
-        PtrFirstSymbol = Ptr;
+        assert(Syms!=nullptr && NumSymbols>0);
+        assert((NumSymbols%NUM_STREAMS_T) == 0);
+        assert(static_cast<size_t>(Stream) < NUM_STREAMS_T);
+        // Move to position of first symbol 
+        Pos = OffsetToFirst = static_cast<size_t>(Stream);
     }
 };
 using SymbolPtr16b_Sd = SymbolPtr16b<1>;

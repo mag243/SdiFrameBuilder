@@ -39,5 +39,8 @@
     <ClInclude Include="Source\SymbolPtr.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="Source\FrameBuilder.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -3,7 +3,9 @@
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Include files -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 #include "SdiFrameBuilder.h"
-#include "SymbolPtr.h"
+#include "FrameBuilder.h"
+
+using namespace std;
 
 namespace DtSdi
 {
@@ -25,38 +27,25 @@ void FrameBuilder::Audio_Add(void)
 void FrameBuilder::Frame_Init(Frame& F)
 {
     const FrameProperties FP = F.Props_Get();
-    const PixelFormat PxFmt = F.PxFmt_Get();
-    const int LineNumSymbols = FP.LineNumSymbols();
+    FrameBuilderImpl_Hd  Impl(FP);
 
-    SymbolPtr16b_Hd PtrChrom(reinterpret_cast<uint16_t*>(F.Data()), 
-                                      LineNumSymbols/2, SymbolPtr::Stream::CHROMINANCE_0);
-    SymbolPtr16b_Hd PtrLuma(reinterpret_cast<uint16_t*>(F.Data()), 
-                                      LineNumSymbols/2, SymbolPtr::Stream::LUMAMINANCE_0);
-
-    const int LineSavOffset = (FP.LineNumSymEav + FP.LineNumSymHanc)/2;
-
-    for (size_t l=0; l<FP.NumLines(); l++)
+    static const vector<SymbolPtr::SymbolStream> SymbolStreams = 
     {
-        // Add EAV
-        PtrChrom[0] = 0x3FF;
-        PtrChrom[1] = 0x000;
-        PtrChrom[2] = 0x000;
+        SymbolPtr::SymbolStream::CHROM_0,
+        SymbolPtr::SymbolStream::LUMA_0,
+    };
+    static const size_t NUM_STREAMS = SymbolStreams.size();
 
-        PtrLuma[0] = 0x3FF;
-        PtrLuma[1] = 0x000;
-        PtrLuma[2] = 0x000;
-                
-        // Add SAV
-        PtrChrom[LineSavOffset] = 0x3FF;
-        PtrChrom[LineSavOffset+1] = 0x000;
-        PtrChrom[LineSavOffset+2] = 0x000;
-
-        PtrLuma[LineSavOffset] = 0x3FF;
-        PtrLuma[LineSavOffset+1] = 0x000;
-        PtrLuma[LineSavOffset+2] = 0x000;
-
-        PtrChrom += LineNumSymbols/2;
-        PtrLuma += LineNumSymbols/2;
+    for (const auto& S : SymbolStreams)
+    {
+        SymbolPtr16b_Hd Syms(reinterpret_cast<uint16_t*>(F.Data()), FP.NumSymbols(), S);
+        for (int l=0; l<static_cast<int>(FP.NumLines()); l++)
+        {
+            Impl.InsertEav(Syms, l+1);
+            Impl.Blank(Syms, FP.LineNumSymHanc/NUM_STREAMS, S);
+            Impl.InsertSav(Syms, l+1);
+            Impl.Blank(Syms, FP.LineNumSymVanc/NUM_STREAMS, S);
+        }
     }
 }
 
@@ -71,5 +60,31 @@ void FrameBuilder::Video_Add(void)
 void FrameBuilder::Make(Frame& F)
 {
 }
+
+// +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+// +=+=+=+=+=+=+=+=+=+=+=+=+ FrameBuilderImpl_Hd implementation +=+=+=+=+=+=+=+=+=+=+=+=+=
+// +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+
+// .-.-.-.-.-.-.-.-.-.-.- FrameBuilderImpl_Hd::FrameBuilderImpl_Hd -.-.-.-.-.-.-.-.-.-.-.-
+//
+FrameBuilderImpl_Hd::FrameBuilderImpl_Hd(const FrameProperties& FP) : FrameProps(FP) 
+{
+    Init(FP);
+}
+
+// .-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameBuilderImpl_Hd::Init -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+void FrameBuilderImpl_Hd::Init(const FrameProperties& FP)
+{
+    XyzWords.clear();
+    for (int Line=1; Line<=static_cast<int>(FP.NumLines()); Line++)
+    {
+        XyzWords.emplace_back(ComputeXyzWord(Line, FP, true), 
+                                                         ComputeXyzWord(Line, FP, false));
+    }
+    // Store properties
+    FrameProps = FP;
+}
+
 
 };  // namespace DtSdi

@@ -197,6 +197,27 @@ bool FrameProperties::IsInterlaced() const
     return (Fields.size()>1); 
 }
 
+// -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::IsVanc -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+bool FrameProperties::IsVanc(size_t Line) const
+{
+    for (const auto& F : Fields)
+    {
+        if (F.IsVanc(Line))
+            return true;
+    }
+    return false;
+}
+
+// -.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::Line2Field -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+size_t FrameProperties::Line2Field(size_t Line) const
+{
+    if (Line<1 || Line>NumLines())
+        return -1;
+    return Fields[0].IsLineInField(Line) ? 1 : 2;
+}
+
 // -.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::LineNumSymbols -.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 size_t FrameProperties::LineNumSymbols() const
@@ -226,6 +247,13 @@ size_t FrameProperties::NumLines() const
     for (const auto& F : Fields)
         TotalNumLines += F.NumLines();
     return TotalNumLines;
+}
+
+// -.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::NumSymbols -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+size_t FrameProperties::NumSymbols() const
+{
+    return NumLines() * LineNumSymbols();
 }
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::SizeInBytes -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -312,6 +340,24 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 // +=+=+=+=+=+=+=+=+=+ FrameProperties::FieldProperties implementation +=+=+=+=+=+=+=+=+=+
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+
+// -.-.-.-.-.-.-.-.-.- FrameProperties::FieldProperties::IsLineInField -.-.-.-.-.-.-.-.-.-
+//
+bool FrameProperties::FieldProperties::IsLineInField(size_t Line) const
+{
+    return (Line>=FirstLine && Line<=LastLine);
+}
+
+// .-.-.-.-.-.-.-.-.-.-.- FrameProperties::FieldProperties::IsVideo -.-.-.-.-.-.-.-.-.-.-.
+//
+bool FrameProperties::FieldProperties::IsVideo(size_t Line) const
+{
+    return (Line>=FirstLineVideo && Line<=LastLineVideo);
+}
+bool FrameProperties::FieldProperties::IsVanc(size_t Line) const
+{
+    return IsLineInField(Line) && !IsVideo(Line);
+}
 
 // -.-.-.-.-.-.-.-.-.-.- FrameProperties::FieldProperties::NumLines -.-.-.-.-.-.-.-.-.-.-.
 //
