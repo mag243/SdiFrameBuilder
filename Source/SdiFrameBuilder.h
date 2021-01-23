@@ -302,12 +302,16 @@ public:
     bool Init(VideoStandard);
     bool IsInterlaced() const;
     bool IsVanc(size_t) const;
-    size_t LineNumSymbols() const;
-    size_t LineSizeInBytes(PixelFormat) const;
-    size_t LineSizeInBytes_Hanc(PixelFormat, bool IncludeEavSav=true);
+    bool IsSd() const;
+    bool IsHd() const;
+    bool IsUhd() const;
+    size_t LineNumSymbols_Get() const;
+    size_t LineNumSymbols_Hanc_Get(bool IncludeEavSav=true) const;
+    size_t LineNumBytes_Get(PixelFormat) const;
+    size_t LineNumBytes_Hanc_Get(PixelFormat, bool IncludeEavSav=true);
     size_t Line2Field(size_t) const;
-    size_t NumLines() const;
-    size_t NumSymbols() const;
+    size_t NumLines_Get() const;
+    size_t NumSymbols_Get() const;
     size_t SizeInBytes(PixelFormat) const;
     static Fraction ToFramePerSecond(VideoStandard);
 
@@ -332,16 +336,6 @@ public:
 //
 class Frame
 {
-    // Types
-public:
-    using SymbolBuffer = std::vector<uint16_t>;
-    struct ParsedFrame
-    {
-        std::map<SymbolStreamType, SymbolBuffer> Hanc;
-        std::map<SymbolStreamType, SymbolBuffer> Vanc;
-        std::vector<uint16_t> Video;
-    };
-
     // Operations
 public:
     void Clone(const Frame&);
@@ -363,7 +357,6 @@ protected:
     // Data / Attributes
 protected:
     FrameBuffer RawFrame;
-    ParsedFrame ParsedFrame;
 private:
     bool IsDirty=false;
 
@@ -376,26 +369,69 @@ public:
     Frame(FrameBuffer&&);
 };
 
-//class Frame_Parsed
-//{
-//    // types
-//public:
-//    using SymbolBuffer = std::vector<uint16_t>;
+// +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class Frame_Raw +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
-//    // Operations
-//public:
+class Frame_Raw
+{
+    // Operations
+public:
+    uint8_t* Data() const;
+    FrameProperties Props_Get() const;
+    PixelFormat PxFmt_Get() const;
+    size_t Size() const;
+    void Swap(FrameBuffer&);
+
+    // Data / Attributes
+protected:
+    FrameBuffer FrameBuf;
+
+    // Constructor / Destructor
+public:
+    Frame_Raw() = default;
+    Frame_Raw(VideoStandard, PixelFormat);
+    Frame_Raw(VideoStandard, PixelFormat, size_t);
+    Frame_Raw(VideoStandard, PixelFormat, uint8_t*, size_t);
+    Frame_Raw(FrameBuffer&&);
+
+    virtual ~Frame_Raw() = default;
+};
+
+// +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class Frame_Parsed +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //
-//    // Data / Attributes
-//protected:
-//    std::map<SymbolStreamType, SymbolBuffer> Hanc;
-//    std::map<SymbolStreamType, SymbolBuffer> Vanc;
-//    std::map<SymbolStreamType, SymbolBuffer> Video;
-//
-//    // Constructor / Destructor
-//public:
-//    Frame_Parsed()=default;
-//    Frame_Parsed(const Frame&);
-//};
+class Frame_Parsed
+{
+    // Types
+public:
+    using SymbolStream = std::vector<uint16_t>;
+
+    // Operations
+public:
+    void Parse(const Frame_Raw&);
+    const FrameProperties& Props_Get() const;
+    PixelFormat PxFmt_Get() const;
+
+    //void Anc_GetToc(void);
+    void Anc_Get(void) const;
+    void Audio_Get(void) const;
+    void Video_Get(Video&) const;
+protected:
+    void Split(const Frame_Raw&);
+    void Split_SD(const Frame_Raw&, const FrameProperties&);
+    void Split_HD(const Frame_Raw&, const FrameProperties&);
+    void Split_UHD(const Frame_Raw&, const FrameProperties&);
+
+    // Data / Attributes
+protected:
+    FrameProperties FrameProps;
+private:
+    std::map<SymbolStreamType, SymbolStream> HancStreams;
+    std::map<SymbolStreamType, SymbolStream> VancStreams;
+
+    // Constructor / Destructor
+public:
+    Frame_Parsed() = default;
+    virtual ~Frame_Parsed() = default;
+};
 
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ class FrameBuilder +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //

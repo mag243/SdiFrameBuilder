@@ -41,6 +41,12 @@ int main()
     FrameBuilder  Builder;
     Builder.Frame_Init(F);
 
+    Frame_Raw RawFrame(F.Props_Get().VidStd, F.PxFmt_Get(),  F.Data(), F.Size());
+    Frame_Parsed ParsedFrame;
+    ParsedFrame.Parse(RawFrame);
+
+
+
     //std::ofstream OutFile;
     //OutFile.open(".\\Export\\sdi_frame.hex", std::ios_base::out | std::ios_base::binary);
     //OutFile.clear();

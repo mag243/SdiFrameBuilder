@@ -209,39 +209,110 @@ bool FrameProperties::IsVanc(size_t Line) const
     return false;
 }
 
+// .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::IsSd -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+bool FrameProperties::IsSd() const
+{
+    return (VidStd==VideoStandard::STD_525I59_94 || VidStd==VideoStandard::STD_625I50);
+}
+
+// .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::IsHd -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+bool FrameProperties::IsHd() const
+{
+    switch (VidStd)
+    {
+    case DtSdi::VideoStandard::STD_720P23_98:
+    case DtSdi::VideoStandard::STD_720P24:
+    case DtSdi::VideoStandard::STD_720P25:
+    case DtSdi::VideoStandard::STD_720P29_97:
+    case DtSdi::VideoStandard::STD_720P30:
+    case DtSdi::VideoStandard::STD_720P50:
+    case DtSdi::VideoStandard::STD_720P59_94:
+    case DtSdi::VideoStandard::STD_720P60:
+    case DtSdi::VideoStandard::STD_1080P23_98:
+    case DtSdi::VideoStandard::STD_1080P24:
+    case DtSdi::VideoStandard::STD_1080P25:
+    case DtSdi::VideoStandard::STD_1080P29_97:
+    case DtSdi::VideoStandard::STD_1080P30:
+    case DtSdi::VideoStandard::STD_1080P50:
+    case DtSdi::VideoStandard::STD_1080P50B:
+    case DtSdi::VideoStandard::STD_1080P59_94:
+    case DtSdi::VideoStandard::STD_1080P59_94B:
+    case DtSdi::VideoStandard::STD_1080P60:
+    case DtSdi::VideoStandard::STD_1080P60B:
+    case DtSdi::VideoStandard::STD_1080I50:
+    case DtSdi::VideoStandard::STD_1080I59_94:
+    case DtSdi::VideoStandard::STD_1080I60:
+        return true;
+    }
+    return false;
+}
+
+// -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::IsUhd -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+bool FrameProperties::IsUhd() const
+{
+    switch (VidStd)
+    {
+    case DtSdi::VideoStandard::STD_2160P23_98:
+    case DtSdi::VideoStandard::STD_2160P24:
+    case DtSdi::VideoStandard::STD_2160P25:
+    case DtSdi::VideoStandard::STD_2160P29_97:
+    case DtSdi::VideoStandard::STD_2160P30:
+    case DtSdi::VideoStandard::STD_2160P50:
+    case DtSdi::VideoStandard::STD_2160P50B:
+    case DtSdi::VideoStandard::STD_2160P59_94:
+    case DtSdi::VideoStandard::STD_2160P59_94B:
+    case DtSdi::VideoStandard::STD_2160P60:
+    case DtSdi::VideoStandard::STD_2160P60B:
+        return true;
+    }
+    return false;
+}
+
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::Line2Field -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 size_t FrameProperties::Line2Field(size_t Line) const
 {
-    if (Line<1 || Line>NumLines())
+    if (Line<1 || Line>NumLines_Get())
         return -1;
     return Fields[0].IsLineInField(Line) ? 1 : 2;
 }
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::LineNumSymbols -.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
-size_t FrameProperties::LineNumSymbols() const
+size_t FrameProperties::LineNumSymbols_Get() const
 {
     return (LineNumSymEav + LineNumSymHanc + LineNumSymSav + LineNumSymVanc);
 }
 
+// .-.-.-.-.-.-.-.-.-.-.- FrameProperties::LineNumSymbols_Hanc_Get -.-.-.-.-.-.-.-.-.-.-.-
+//
+size_t FrameProperties::LineNumSymbols_Hanc_Get(bool IncludeEavSav) const
+{
+    size_t NumSyms = LineNumSymHanc;
+    NumSyms += IncludeEavSav ? (LineNumSymEav+LineNumSymSav) : 0;
+    return NumSyms;
+}
+
 // .-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::LineSizeInBytes -.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
-size_t FrameProperties::LineSizeInBytes(PixelFormat Fmt) const
+size_t FrameProperties::LineNumBytes_Get(PixelFormat Fmt) const
 {
     PixelFormatProps PP(Fmt);
-    return (((LineNumSymbols() * PP.SymbolSize) + 7) / 8);
+    return (((LineNumSymbols_Get() * PP.SymbolSize) + 7) / 8);
 }
-size_t FrameProperties::LineSizeInBytes_Hanc(PixelFormat Fmt, bool IncludeEavSav)
+size_t FrameProperties::LineNumBytes_Hanc_Get(PixelFormat Fmt, bool IncludeEavSav)
 {
     PixelFormatProps PP(Fmt);
-    size_t NumSymbols = LineNumSymHanc + IncludeEavSav ? LineNumSymEav+LineNumSymSav : 0;
+    size_t NumSymbols = LineNumSymbols_Hanc_Get(IncludeEavSav);
     return (((NumSymbols * PP.SymbolSize) + 7) / 8);
 }
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::NumLines -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 //
-size_t FrameProperties::NumLines() const
+size_t FrameProperties::NumLines_Get() const
 {
     size_t TotalNumLines = 0;
     for (const auto& F : Fields)
@@ -251,16 +322,16 @@ size_t FrameProperties::NumLines() const
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::NumSymbols -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
-size_t FrameProperties::NumSymbols() const
+size_t FrameProperties::NumSymbols_Get() const
 {
-    return NumLines() * LineNumSymbols();
+    return NumLines_Get() * LineNumSymbols_Get();
 }
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::SizeInBytes -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 size_t FrameProperties::SizeInBytes(PixelFormat Fmt) const
 {
-    return NumLines() * LineSizeInBytes(Fmt);
+    return NumLines_Get() * LineNumBytes_Get(Fmt);
 }
 
 Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)

@@ -38,8 +38,8 @@ void FrameBuilder::Frame_Init(Frame& F)
 
     for (const auto& S : SymbolStreams)
     {
-        SymbolPtr16b_Hd Syms(reinterpret_cast<uint16_t*>(F.Data()), FP.NumSymbols(), S);
-        for (int l=0; l<static_cast<int>(FP.NumLines()); l++)
+        SymbolPtr16b_Hd Syms(reinterpret_cast<uint16_t*>(F.Data()), FP.NumSymbols_Get(), S);
+        for (int l=0; l<static_cast<int>(FP.NumLines_Get()); l++)
         {
             Impl.InsertEav(Syms, l+1);
             Impl.Blank(Syms, FP.LineNumSymHanc/NUM_STREAMS, S);
@@ -77,7 +77,7 @@ FrameBuilderImpl_Hd::FrameBuilderImpl_Hd(const FrameProperties& FP) : FrameProps
 void FrameBuilderImpl_Hd::Init(const FrameProperties& FP)
 {
     XyzWords.clear();
-    for (int Line=1; Line<=static_cast<int>(FP.NumLines()); Line++)
+    for (int Line=1; Line<=static_cast<int>(FP.NumLines_Get()); Line++)
     {
         XyzWords.emplace_back(ComputeXyzWord(Line, FP, true), 
                                                          ComputeXyzWord(Line, FP, false));
