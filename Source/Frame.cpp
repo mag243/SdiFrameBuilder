@@ -266,7 +266,7 @@ void Frame_Parsed::Split_SD(const Frame_Raw& RawFrame, const FrameProperties& FP
 void Frame_Parsed::Split_HD(const Frame_Raw& RawFrame, const FrameProperties& FP)
 {
     const PixelFormatProps PP(RawFrame.PxFmt_Get());
-    static const std::vector<SymbolStreamType> StreamTypes = 
+    static const std::vector<SymbolStreamType> HancVancStreams = 
     {
         SymbolStreamType::CHROM0, SymbolStreamType::LUMA0,
     };
@@ -274,15 +274,20 @@ void Frame_Parsed::Split_HD(const Frame_Raw& RawFrame, const FrameProperties& FP
     // Split HANC
     HancStreams.clear();
     const auto NumSymbolsHanc = FP.LineNumSymbols_Hanc_Get() * FP.NumLines_Get();
-    for (const auto& S : StreamTypes)
+    for (const auto& S : HancVancStreams)
         HancStreams[S].reserve(NumSymbolsHanc/2);
 
     VancStreams.clear();
     const auto NumSymbolsVanc = FP.LineNumSymVanc * (FP.NumLines_Get()-FP.VideoHeight);
-    for (const auto& S : StreamTypes)
+    for (const auto& S : HancVancStreams)
         VancStreams[S].reserve(NumSymbolsVanc/2);
 
+    const auto NumSymbolsVideo = FP.LineNumSymVanc * FP.VideoHeight;
+    VideoStreams.clear();
+    VideoStreams[SymbolStreamType::VIDEO0].Init(FP.VideoHeight, FP.LineNumSymVanc);
+
     const uint16_t* Line = reinterpret_cast<uint16_t*>(RawFrame.Data());
+    size_t VideoLineIndex=0;
     for (size_t l=0; l<FP.NumLines_Get(); l++)
     {
         for (size_t i=0; i<FP.LineNumSymbols_Hanc_Get(); i+=2)
@@ -299,7 +304,10 @@ void Frame_Parsed::Split_HD(const Frame_Raw& RawFrame, const FrameProperties& FP
             }
         }
         else
+        {
+            VideoStreams[SymbolStreamType::VIDEO0].Copy(VideoLineIndex++, Line, FP.LineNumSymVanc);
             Line += FP.LineNumSymVanc;
+        }
     }
 }
 void Frame_Parsed::Split_UHD(const Frame_Raw& RawFrame, const FrameProperties& FP)

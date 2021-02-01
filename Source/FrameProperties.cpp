@@ -209,6 +209,18 @@ bool FrameProperties::IsVanc(size_t Line) const
     return false;
 }
 
+// .-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::IsVideo -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+bool FrameProperties::IsVideo(size_t Line) const
+{
+    for (const auto& F : Fields)
+    {
+        if (F.IsVideo(Line))
+            return true;
+    }
+    return false;
+}
+
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::IsSd -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 //
 bool FrameProperties::IsSd() const
@@ -320,6 +332,17 @@ size_t FrameProperties::NumLines_Get() const
     return TotalNumLines;
 }
 
+// -.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::NumLines_Video_Get -.-.-.-.-.-.-.-.-.-.-.-.-
+//
+size_t FrameProperties::NumLines_Video_Get() const
+{
+    size_t TotalNumLinesVideo = 0;
+    for (const auto& F : Fields)
+        TotalNumLinesVideo += F.NumLinesVideo();
+    assert(TotalNumLinesVideo == VideoHeight);
+    return TotalNumLinesVideo;
+}
+
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::NumSymbols -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 size_t FrameProperties::NumSymbols_Get() const
@@ -406,6 +429,25 @@ Fraction FrameProperties::ToFramePerSecond(VideoStandard Std)
     default:  assert(false); break;
     }
     return Fraction(0,1);
+}
+
+// .-.-.-.-.-.-.-.-.-.-.-.- FrameProperties::ToRelativeVideoLine -.-.-.-.-.-.-.-.-.-.-.-.-
+//
+size_t FrameProperties::ToRelativeVideoLine(size_t AbsLine) const
+{
+    size_t RelVideoLine = 0;
+    for (const auto& F : Fields)
+    {
+        if (!F.IsVideo(AbsLine))
+        {
+            RelVideoLine += AbsLine - F.FirstLineVideo + 1;
+            return RelVideoLine;
+        }
+        else
+            RelVideoLine += F.NumLinesVideo();
+
+    }
+    return -1;
 }
 
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+

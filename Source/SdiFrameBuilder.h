@@ -4,6 +4,7 @@
 #pragma once
 
 // .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Include files -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+#include <cassert>
 #include <memory>
 #include <stdint.h>
 #include <vector>
@@ -102,18 +103,57 @@ enum class VideoStandard : int
 
 // -.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum class SymbolStreamType -.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
-enum class SymbolStreamType : int
+enum class SymbolStreamType : uint8_t
 {
-    ALL     = -1,
-    CHROM0,
-    LUMA0,
-    CHROM1,
-    LUMA1,
-    CHROM2,
-    LUMA2,
-    CHROM3,
-    LUMA3,
+    NONE    = 0x00,
+
+    // Streams
+    CHROM0  = 0x01,
+    LUMA0   = 0x02,
+    CHROM1  = 0x04,
+    LUMA1   = 0x08,
+    CHROM2  = 0x10,
+    LUMA2   = 0x20,
+    CHROM3  = 0x40,
+    LUMA3   = 0x80,
+
+    // Sub-images
+    VIDEO0 = CHROM0|LUMA0,
+    VIDEO1 = CHROM1|LUMA1,
+    VIDEO2 = CHROM2|LUMA2,
+    VIDEO3 = CHROM3|LUMA3,
 };
+inline constexpr SymbolStreamType operator|(
+                                     const SymbolStreamType& A, const SymbolStreamType& B)
+{
+    return static_cast<SymbolStreamType>(
+                            static_cast<std::underlying_type<SymbolStreamType>::type>(A) 
+                          | static_cast<std::underlying_type<SymbolStreamType>::type>(B));
+}
+inline constexpr SymbolStreamType& operator|=(
+                                      SymbolStreamType& Self, const SymbolStreamType& Oth)
+{
+    Self = Self | Oth;
+    return Self;
+}
+inline constexpr SymbolStreamType operator&(
+                                     const SymbolStreamType& A, const SymbolStreamType& B)
+{
+    return static_cast<SymbolStreamType>(
+                            static_cast<std::underlying_type<SymbolStreamType>::type>(A) 
+                          & static_cast<std::underlying_type<SymbolStreamType>::type>(B));
+}
+inline constexpr SymbolStreamType& operator&=(
+                                      SymbolStreamType& Self, const SymbolStreamType& Oth)
+{
+    Self = Self & Oth;
+    return Self;
+}
+inline constexpr SymbolStreamType operator~(const SymbolStreamType& Self)
+{
+    return static_cast<SymbolStreamType>(
+                        ~static_cast<std::underlying_type<SymbolStreamType>::type>(Self));
+}
 
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ struct Fraction +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 //
@@ -302,6 +342,7 @@ public:
     bool Init(VideoStandard);
     bool IsInterlaced() const;
     bool IsVanc(size_t) const;
+    bool IsVideo(size_t) const;
     bool IsSd() const;
     bool IsHd() const;
     bool IsUhd() const;
@@ -311,9 +352,11 @@ public:
     size_t LineNumBytes_Hanc_Get(PixelFormat, bool IncludeEavSav=true);
     size_t Line2Field(size_t) const;
     size_t NumLines_Get() const;
+    size_t NumLines_Video_Get() const;
     size_t NumSymbols_Get() const;
     size_t SizeInBytes(PixelFormat) const;
     static Fraction ToFramePerSecond(VideoStandard);
+    size_t ToRelativeVideoLine(size_t) const;
 
     // Data / Attributes
 public:
@@ -404,6 +447,35 @@ class Frame_Parsed
 public:
     using SymbolStream = std::vector<uint16_t>;
 
+    struct Video
+    {
+        SymbolStream Symbols;
+
+        uint16_t* Line_Get(size_t RelativeLineIndex)
+        {
+            assert(RelativeLineIndex < NumLines);
+            const size_t Offset = LineNumSymbols * RelativeLineIndex;
+            return Symbols.data() + Offset;
+        }
+
+        void Copy(size_t DestLineIndex, const uint16_t* Src, size_t NumSymbols)
+        {
+            assert(DestLineIndex < NumLines);
+            const size_t Offset = LineNumSymbols * DestLineIndex;
+            assert((Offset+NumSymbols)<=Symbols.size());
+            std::memcpy(Line_Get(DestLineIndex), Src, NumSymbols*sizeof(uint16_t));
+        }
+
+        void Init(size_t NumLines, size_t LineNumSymbols)
+        {
+            Symbols.resize(NumLines*LineNumSymbols);
+            this->NumLines = NumLines;
+            this->LineNumSymbols = LineNumSymbols;
+        }
+        size_t NumLines=0;
+        size_t LineNumSymbols=0;
+    };
+
     // Operations
 public:
     void Parse(const Frame_Raw&);
@@ -426,6 +498,7 @@ protected:
 private:
     std::map<SymbolStreamType, SymbolStream> HancStreams;
     std::map<SymbolStreamType, SymbolStream> VancStreams;
+    std::map<SymbolStreamType, Video> VideoStreams;
 
     // Constructor / Destructor
 public:
